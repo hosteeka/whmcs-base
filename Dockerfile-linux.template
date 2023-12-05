@@ -1,0 +1,51 @@
+{{
+    def php_version:
+        env.phpVersion | tonumber
+-}}
+FROM {{ env.from }}
+
+# Install dependencies required by PHP extensions
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+    libjpeg-dev \
+    libz-dev \
+    libpng-dev \
+    libwebp-dev \
+    libfreetype6-dev \
+    libgmp-dev \
+    libicu-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+## Configure and Install GD2 extension
+
+{{ if php_version >= 7.4 then ( -}}
+RUN docker-php-ext-configure gd \
+    --with-jpeg \
+    --with-webp \
+    --with-freetype; \
+    docker-php-ext-install gd
+{{ ) else ( -}}
+RUN docker-php-ext-configure gd \
+    --with-jpeg-dir=/usr/include/ \
+    --with-zlib-dir=/usr/include/ \
+    --with-png-dir=/usr/include/ \
+    --with-webp-dir=/usr/include/ \
+    --with-freetype-dir=/usr/include/; \
+    docker-php-ext-install gd
+{{ ) end -}}
+
+## Install PDO_MYSQL, BC Math, GMP and Intl extensions
+
+RUN docker-php-ext-install pdo_mysql bcmath gmp intl
+
+{{ if env.webServer == "nginx" then ( -}}
+## Install nginx
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+    nginx; \
+    rm -rf /var/lib/apt/lists/*
+{{ ) else "" end -}}
