@@ -1,0 +1,8 @@
+# WHMCS-PHP Version Support Matrix (LTS & Active)
+# https://docs.whmcs.com/PHP_Version_Support_Matrix
+#
+# WHMCS Version, ...PHP Versions
+#
+8.6,7.2,7.3,7.4,8.1
+8.7,7.2,7.3,7.4,8.1
+8.8,7.2,7.3,7.4,8.1
