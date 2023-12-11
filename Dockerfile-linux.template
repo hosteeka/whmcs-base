@@ -1,9 +1,22 @@
 {{
     def php_version:
         env.phpVersion | tonumber
+    ;
+    def is_nginx:
+        env.webServer == "nginx"
 -}}
 FROM {{ env.from }}
 
+{{ if is_nginx then ( -}}
+## Install nginx
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+    nginx; \
+    rm -rf /var/lib/apt/lists/*
+
+{{ ) else "" end -}}
 # Install dependencies required by PHP extensions
 
 RUN set -eux; \
@@ -39,13 +52,3 @@ RUN docker-php-ext-configure gd \
 ## Install PDO_MYSQL, BC Math, GMP and Intl extensions
 
 RUN docker-php-ext-install pdo_mysql bcmath gmp intl
-
-{{ if env.webServer == "nginx" then ( -}}
-## Install nginx
-
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
-    nginx; \
-    rm -rf /var/lib/apt/lists/*
-{{ ) else "" end -}}
