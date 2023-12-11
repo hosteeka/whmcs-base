@@ -1,0 +1,114 @@
+name: Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'versions.txt'
+
+env:
+  STACKBREW_LIBRARY_MANIFEST: whmcs-base
+  STACKBREW_LIBRARY_LOCATION: library
+
+jobs:
+  generate:
+    name: Generate variants
+    runs-on: ubuntu-latest
+    outputs:
+      WHMCS_DOCKERFILES_UPDATED: ${{ steps.commit-dockerfiles.outputs.WHMCS_DOCKERFILES_UPDATED }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Git config
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email ''
+
+      - name: Generate variants
+        run: ./versions.sh
+
+      - name: Commit changes and push
+        run: |
+          STATUS=$(git status versions.json --porcelain)
+
+          if [ -n "$STATUS" ]; then
+            git add versions.json
+            git commit -m 'Update versions.json'
+            git push
+            echo 'WHMCS_VERSIONS_UPDATED=true' >> $GITHUB_ENV
+          else
+            echo 'No new versions'
+          fi
+      
+      - name: Apply templates
+        run: |
+          if [ "$WHMCS_VERSIONS_UPDATED" ]; then
+            ./apply-templates.sh
+          fi
+
+      - name: Commit changes and push
+        id: commit-dockerfiles
+        run: |
+          STATUS=$(git status --porcelain)
+
+          if [ -n "$STATUS" ]; then
+            git add .
+            git commit -m 'Update Dockerfiles'
+            git push
+            echo 'WHMCS_DOCKERFILES_UPDATED=true' >> $GITHUB_OUTPUT
+          else
+            echo 'No Dockerfiles changed'
+          fi
+
+      - name: Generate stackbrew library
+        if: ${{ steps.commit-dockerfiles.outputs.WHMCS_DOCKERFILES_UPDATED == 'true' }}
+        run: ./generate-stackbrew-library.sh
+      
+      - name: Upload manifest
+        uses: actions/upload-artifact@v3
+        if: ${{ steps.commit-dockerfiles.outputs.WHMCS_DOCKERFILES_UPDATED == 'true' }}
+        with:
+          name: ${{ env.STACKBREW_LIBRARY_MANIFEST }}
+          path: ${{ env.STACKBREW_LIBRARY_MANIFEST }}
+          if-no-files-found: error
+
+  publish:
+    name: Build & Push Images
+    needs: generate
+    runs-on: ubuntu-latest
+    if: needs.generate.outputs.WHMCS_DOCKERFILES_UPDATED == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download manifest
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.STACKBREW_LIBRARY_MANIFEST }}
+          path: ${{ env.STACKBREW_LIBRARY_LOCATION }}
+
+      - name: Download bashbrew
+        uses: docker-library/bashbrew@HEAD
+      
+      - name: Bashbrew config
+        run: |
+          mkdir -p ~/.config/bashbrew
+          cat <<EOF > ~/.config/bashbrew/flags
+          Commands: build, push
+          Namespace: hosteeka
+          Library: $GITHUB_WORKSPACE/$STACKBREW_LIBRARY_LOCATION
+          EOF
+
+      - name: Build images
+        run: bashbrew build $STACKBREW_LIBRARY_MANIFEST
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      - name: Push images
+        run: bashbrew push $STACKBREW_LIBRARY_MANIFEST
