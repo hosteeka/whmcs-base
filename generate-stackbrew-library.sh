@@ -7,12 +7,13 @@ cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 # The filename of this script
 self="$(basename "$BASH_SOURCE")"
 
+# Get the versions from versions.json if no arguments are passed to this script
 if [ "$#" -eq 0 ]; then
 	versions="$(jq -r 'to_entries | map(if .value then .key | @sh else empty end) | join(" ")' versions.json)"
 	eval "set -- $versions"
 fi
 
-# Sort version numbers with highest first
+# Sort version numbers from highest to lowest
 IFS=$'\n'; set -- $(sort -rV <<<"$*"); unset IFS
 
 # Get the most recent commit which modified any of "$@"
@@ -37,13 +38,17 @@ dirCommit() {
 	)
 }
 
-cat <<-EOH
-# This file is generated via https://github.com/hosteeka/whmcs-base/blob/$(fileCommit "$self")/$self
+# Clean up any old manifest files and generate the global metadata
+manifest='whmcs-base'
+rm -f "$manifest"
+cat <<-EOH >> "$manifest"
+	# This file is generated via https://github.com/hosteeka/whmcs-base/blob/$(fileCommit "$self")/$self
 
-Maintainers: Melvin Otieno <o.melvinotieno@gmail.com> (@melvinotieno)
-GitRepo: https://github.com/hosteeka/whmcs-base.git
+	Maintainers: Melvin Otieno <o.melvinotieno@gmail.com> (@melvinotieno)
+	GitRepo: https://github.com/hosteeka/whmcs-base.git
 EOH
 
+# Generate the metadata for each version
 for version; do
 	export version
 
@@ -69,11 +74,12 @@ for version; do
 		# Get the commit for this directory
 		commit="$(dirCommit "$dir")"
 
-		echo
-		cat <<-EOE
+		# Generate the metadata and append it to the manifest file
+		cat <<-EOH >> "$manifest"
+
 			Tags: $version-$webServer-php$phpVersion
 			GitCommit: $commit
 			Directory: $dir
-		EOE
+		EOH
 	done
 done
