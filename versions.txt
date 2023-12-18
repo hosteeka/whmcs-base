@@ -3,6 +3,9 @@
 #
 # WHMCS Version, ...PHP Versions
 #
-8.6,7.2,7.3,7.4,8.1
-# 8.7,7.2,7.3,7.4,8.1
+# 8.6,7.2,7.3,7.4,8.1
+8.7,7.2,7.3,7.4,8.1
 # 8.8,7.2,7.3,7.4,8.1
+#
+# When adding a new version support matrix, please comment
+# out the previous versions to prevent building them again.
