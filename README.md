@@ -9,3 +9,28 @@ In these images, we aim to provide the bare minimum to run WHMCS as per the [Sys
 You can follow the [System Environment Guide](https://docs.whmcs.com/System_Environment_Guide) and [Further Security Steps](https://docs.whmcs.com/Further_Security_Steps) in the WHMCS documentation to further build on these images.
 
 Note: The WHMCS files are not included in these images since you require a valid WHMCS license to download the files. You will need to download the files and mount them into your image that is built from these base images.
+
+## Usage
+
+The images are available on [Docker Hub](https://hub.docker.com/r/hosteeka/whmcs-base). The format of the image tags is as follows:
+
+```bash
+hosteeka/whmcs-base:<whmcs-version>-<web-server>-php<php-version>
+```
+
+For example, to use WHMCS 8.8 with Apache and PHP 8.1, you would use the following image tag:
+
+```bash
+hosteeka/whmcs-base:8.8-apache-php8.1
+```
+
+Currently, the supported Web Servers are:
+
+- Apache
+- Nginx
+
+## Contributing to this repository
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+For more information, please see the [CONTRIBUTING.md](/CONTRIBUTING.md) file.
